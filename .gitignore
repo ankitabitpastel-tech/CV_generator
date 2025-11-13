@@ -1,0 +1,32 @@
+# Django
+*.log
+*.pot
+*.pyc
+__pycache__/
+migrations/
+db.sqlite3
+
+
+# Environment variables
+.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Virtual environment
+env/
+venv/
+ENV/
+
+# Coverage reports
+htmlcov/
+.coverage
+.coverage.*.env
+.env
