@@ -82,7 +82,7 @@ def generate_cv_with_ai(cv_data):
         - Add Professional Summary, Skills, Projects, Education, Experience
         """
 
-        response = client.chat.completions.create(
+        response = client.responses.create(
             model="gpt-4o-mini",
             messages=[
                 {"role": "system", "content": "You are a professional resume writer."},
@@ -90,12 +90,14 @@ def generate_cv_with_ai(cv_data):
             ]
         )
 
-        # content = response["choices"][0]["message"]["content"]
-        content = response.choices[0].message.content
+        content = response.output_text
+
         return {"content": content}
     
     except Exception as e:
+        import traceback
         print("OpenAI API Error:", e)
+        traceback.print_exc()
         return None
 
 def generate_template_cv(cv_data):

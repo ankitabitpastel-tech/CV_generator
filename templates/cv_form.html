@@ -17,7 +17,7 @@
             </div>
         {% endif %}
 
-        <form method="post" id="cvForm">
+        <form method="post" action="{% url 'cv_form' %}" id="cvForm">
             {% csrf_token %}
             
             <!-- Basic Information Section -->
