@@ -8,12 +8,11 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import simpleSplit
 import io
 from .forms import CVForm, QUALIFICATION_CHOICES, FIELD_CHOICES, TECH_SKILLS, SOFT_SKILLS, WORK_TYPE_CHOICES
-import openai
+# import openai
 from decouple import config
+from openai import OpenAI
 
-# openai.api_key = config('OPENAI_API_KEY')
-openai.api_key = os.environ.get('OPENAI_API_KEY')
-
+client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
 
 def cv_form(request):
     if request.method == 'POST':
@@ -63,17 +62,6 @@ def format_cv_data(form_data):
         }
         
     }
-
-# def clean_cv_text(text):
-
-#     text = text.strip()
-
-#     box_chars_pattern = r'[■─═║╔╗╚╝╠╣╦╩╬┌┐└┘├┤┬┴┼]'
-#     text = re.sub(box_chars_pattern, '-', text)
-#     lines = text.split('\n')
-#     cleaned_lines = [line.strip() for line in lines]
-#     return '\n'.join(cleaned_lines)
-
 
 def generate_cv_with_ai(cv_data):
     """Generate CV content using OpenAI API with advanced prompt engineering"""
@@ -138,19 +126,21 @@ def generate_cv_with_ai(cv_data):
         that would be attractive to employers for { 'entry-level/fresher positions' if is_fresher else 'experienced positions' }.
         """
         
-        response = openai.Completion.create(
-            model="gpt-3.5-turbo-instruct",
-            prompt=prompt,
-            max_tokens=1000,
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": "You are an expert CV writer."},
+                {"role": "user", "content": prompt},
+            ],
+            max_tokens=1000
         )
-        
-        generated_text = response.choices[0].text.strip()
-        return {'content': generated_text}
-        
+
+        generated_text = response.choices[0].message.content.strip()
+        return {"content": generated_text}
+
     except Exception as e:
         print(f"OpenAI API Error: {e}")
         return generate_template_cv(cv_data)
-
 def generate_template_cv(cv_data):
     """Fallback template-based CV generation"""
     experience_years = cv_data['experience']['years']
@@ -273,123 +263,3 @@ def download_pdf(request):
     return response
 
 
-
-
-#def user_login_required(view_func):
-#     @wraps(view_func)
-#     def _wrapped_view(request, *args, **kwargs):
-#         if not request.session.get('is_authenticated'):
-#             messages.error(request, 'Please sign in to access this page.')
-#             return redirect('signin')
-#         return view_func(request, *args, **kwargs)
-#     return _wrapped_view
-
-# def must_be_logged_out(view_func):
-#     @wraps(view_func)
-#     def _wrapped_view(request, *args, **kwargs):
-#         if request.session.get('is_authenticated'):
-#             messages.info(request, 'You are already signed in.')
-#             return redirect('home')
-#         return view_func(request, *args, **kwargs)
-#     return _wrapped_view
-
-# @must_be_logged_out
-# def welcome (request):
-#     return render (request, '')
-
-# @must_be_logged_out
-# def signin(request):
-#     if request.method == 'POST':
-#         try:
-#             email = request.POST.get('email', '').strip().lower()
-#             password = request.POST.get('password', '')
-
-#             if not email or not password:
-#                 messages.error(request, 'Email and password are required')
-#                 return redirect('signin')
-            
-#             try:
-#                 user_obj = user.objects.get(email=email)
-#             except user.DoesNotExist:
-#                 messages.error(request, 'Invalid email or password.')
-#                 return redirect('signin')
-            
-#             if user_obj.check_password(password):
-#                 request.session['user_id'] = user_obj.id
-#                 request.session['user_email'] = user_obj.email
-#                 request.session['user_name'] = user_obj.full_name
-#                 request.session['is_authenticated'] = True
-                
-#                 messages.success(request, f'Welcome back, {user_obj.full_name}!')
-#                 return redirect('')
-#             else:
-#                 messages.error(request, 'Invalid email or password.')
-#                 return redirect('signin')
-#         except Exception as e :
-#             messages.error(request, f'Error signin in: {str(e)}')
-#             return redirect('signin')
-        
-#     return render(request, 'signin.html')
-
-# @must_be_logged_out
-# def signup(request):
-#     if request.method == 'POST':
-#         try:
-#             full_name = request.POST.get('full_name', '').strip()
-#             email = request.POST.get('email', '').strip().lower()
-#             phone = request.POST.get('phone', '').strip()
-#             password = request.POST.get('password', '')
-#             confirm_password = request.POST.get('confirm_password','')
-
-#             if not all([full_name, email, password, confirm_password]):
-#                 messages.error(request, 'All fields are required.')
-#                 return redirect('signup')
-            
-#             if not re.match(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$', email):
-#                 messages.error(request, 'please enter a valid email address.')
-#                 return redirect('signup')
-
-#             if user.objects.filter(email=email).exists():
-#                 messages.error(request, 'Email already exists. Please use a different email.')
-
-#             if len(password) < 6:
-#                 messages.error(request, 'Password must be at least 6 characters long.')
-#                 return redirect('signup')
-            
-#             if password != confirm_password:
-#                 messages.error(request, 'Passwords do not match.')
-#                 return redirect('signup')
-            
-#             new_user = user(
-#                 full_name=full_name,
-#                 email=email,
-#                 phone=phone if phone else None
-#             )
-#             new_user.set_password(password)
-#             new_user.save()
-            
-#             messages.success(request, 'Account created successfully! Please sign in.')
-#             return redirect('signin')
-#         except Exception as e:
-#             messages.error(request, f'Error creating account: {str(e)}')
-#             return redirect('signup')
-    
-#     return render(request, 'signup.html')
-
-# @user_login_required
-# def home(request):
-#     if not request.session.get('is_authenticated'):
-#         messages.error(request,'Please sign in to access the home page.')
-
-#         return redirect('signin')
-    
-#     context = {
-#         'user_name': request.session.get('user_name', 'user')
-#     }
-#     return render(request, 'home.html', context)
-
-# @user_login_required
-# def signout(request):
-#     request.session.flush()
-#     messages.success(request, 'You have been signed out successfully.')
-#     return redirect('welcome')
