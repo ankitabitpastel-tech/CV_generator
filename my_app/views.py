@@ -84,10 +84,8 @@ def generate_cv_with_ai(cv_data):
 
         response = client.responses.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are a professional resume writer."},
-                {"role": "user", "content": prompt}
-            ]
+            input=prompt
+
         )
 
         content = response.output_text
