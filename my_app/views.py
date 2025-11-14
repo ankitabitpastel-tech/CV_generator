@@ -125,17 +125,14 @@ def generate_cv_with_ai(cv_data):
         that would be attractive to employers for { 'entry-level/fresher positions' if is_fresher else 'experienced positions' }.
         """
         
-        response = client.chat.completions.create(
+        response = client.responses.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": "You are an expert CV writer."},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=1000
+            input=f"Generate a CV from: {cv_data}"
         )
-
-        generated_text = response.choices[0].message.content.strip()
-        return {"content": generated_text}
+        return response.output_text
+    except Exception as e:
+        print("OpenAI API Error:", e)
+        return None
 
     except Exception as e:
         print(f"OpenAI API Error: {e}")
