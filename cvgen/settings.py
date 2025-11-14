@@ -158,6 +158,7 @@ Django settings for cvgen project.
 import os
 from pathlib import Path
 from decouple import config
+import dj_database_url, psycopg2
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -211,11 +212,10 @@ WSGI_APPLICATION = 'cvgen.wsgi.application'
 
 
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
-    }
+    'default': dj_database_url.parse(config('DATABASE_URL'))
 }
+
+
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 LANGUAGE_CODE = 'en-us'
