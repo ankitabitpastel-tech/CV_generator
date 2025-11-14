@@ -10,18 +10,25 @@ from .forms import CVForm, QUALIFICATION_CHOICES, FIELD_CHOICES, TECH_SKILLS, SO
 from decouple import config
 from openai import OpenAI
 
-
 def cv_form(request):
     if request.method == 'POST':
         form = CVForm(request.POST)
+        print("⚠️ CV FORM SUBMITTED")
+        print("FORM VALID:", form.is_valid())
+
         if form.is_valid():
+            print("CLEANED DATA:", form.cleaned_data)
+
             cv_data = format_cv_data(form.cleaned_data)
             ai_response = generate_cv_with_ai(cv_data)
+
+            print("AI RESPONSE RAW:", ai_response)
+
             if ai_response and ai_response.get("content"):
                 request.session['generated_cv'] = ai_response['content']
                 return redirect('cv_result')
-
             else:
+                print("❌ ERROR: AI returned None or empty content")
                 return render(request, 'cv_form.html', {
                     'form': form,
                     'error': 'Failed to generate CV. Please try again.'
@@ -29,6 +36,7 @@ def cv_form(request):
 
     else:
         form = CVForm()
+
     return render(request, 'cv_form.html', {'form': form})
    
 def format_cv_data(form_data):
