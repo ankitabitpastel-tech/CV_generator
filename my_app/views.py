@@ -88,7 +88,8 @@ def generate_cv_with_ai(cv_data):
             ]
         )
 
-        content = response.choices[0].message["content"]
+        content = response["choices"][0]["message"]["content"]
+
         return {"content": content}
     except Exception as e:
         print("OpenAI API Error:", e)
