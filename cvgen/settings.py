@@ -161,7 +161,7 @@ from decouple import config
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-SECRET_KEY = config('SECRET_KEY', default='django-insecure-fallback-key-for-render')
+SECRET_KEY = config('SECRET_KEY')
 # DEBUG = config('DEBUG', default=False, cast=bool)
 DEBUG = False
 
@@ -205,6 +205,7 @@ DATABASES = {
         'NAME': BASE_DIR / 'db.sqlite3',
     }
 }
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
 LANGUAGE_CODE = 'en-us'
 TIME_ZONE = 'UTC'
