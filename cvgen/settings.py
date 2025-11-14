@@ -212,8 +212,13 @@ WSGI_APPLICATION = 'cvgen.wsgi.application'
 
 
 DATABASES = {
-    'default': dj_database_url.parse(config('DATABASE_URL'))
+    'default': dj_database_url.parse(
+        config('DATABASE_URL'),
+        conn_max_age=600,
+        ssl_require=True
+    )
 }
+
 
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
