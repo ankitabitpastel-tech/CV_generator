@@ -15,27 +15,32 @@ from decouple import config
 
 client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
-
 def cv_form(request):
     if request.method == 'POST':
         form = CVForm(request.POST)
         if form.is_valid():
-            cv_data = format_cv_data(form.cleaned_data)
-            ai_response = generate_cv_with_ai(cv_data)
-            if ai_response and 'content' in ai_response:
-                request.session['generated_cv'] = ai_response['content']
+            try:
+                cv_data = format_cv_data(form.cleaned_data)
+                ai_response = generate_cv_with_ai(cv_data)
+                
+                if ai_response and 'content' in ai_response:
+                    request.session['generated_cv'] = ai_response['content']
+                    return redirect('cv_result') 
+                else:
+                    messages.error(request, 'Failed to generate CV content. Please try again.')
+                    
+            except Exception as e:
+                messages.error(request, f'An error occurred: {str(e)}')
 
-                return redirect('cv_result') 
-            else:
-                return render(request, 'cv_form.html', {
-                    'form': form,
-                    'error': 'Failed to generate CV. Please try again.'
-                })
+                cv_data = format_cv_data(form.cleaned_data)
+                template_cv = generate_template_cv(cv_data)
+                request.session['generated_cv'] = template_cv['content']
+                return redirect('cv_result')
 
     else:
         form = CVForm()
     return render(request, 'cv_form.html', {'form': form})
-   
+
 def format_cv_data(form_data):
     return{
         'basic_info':{
@@ -117,7 +122,7 @@ def generate_cv_with_ai(cv_data):
         """
 
         
-        response = client.Completion.create(
+        response = client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[
                 {
