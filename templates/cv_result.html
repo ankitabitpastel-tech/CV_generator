@@ -1,29 +1,106 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>CV Result</title>
-    <style>
-        .cv-content {
-            white-space: pre-wrap;
-            font-family: monospace;
-            background: #f5f5f5;
-            padding: 20px;
-            border-radius: 5px;
-        }
-    </style>
-</head>
-<body>
-    <h1>Your Generated CV</h1>
+{% extends 'base.html' %}
+
+{% block title %}Your Generated CV - AI CV Generator{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h3">Your AI-Generated CV</h1>
+            <div>
+                <button onclick="window.history.back()" class="btn btn-outline-secondary me-2">
+                    ← Edit Again
+                </button>
+                <a href="{% url 'download_pdf' %}" class="btn btn-success" target="_blank">
+                    📄 Download as PDF
+                </a>
+
+            </div>
+        </div>
+
+        <div class="alert alert-info">
+            <strong>✨ AI Powered:</strong> This CV was generated using OpenAI based on your information.
+        </div>
+
+        <div class="cv-preview">
+            <div id="cvContent" class="cv-content" style="white-space: pre-line;">
+                {{ cv_content|safe }}
+            </div>
+        </div>
+
+        <div class="mt-4 p-3 bg-light rounded">
+            <h5>💡 Tips for Your CV:</h5>
+            <ul class="mb-0">
+                <li>Review and customize the generated content</li>
+                <li>Ensure all information is accurate and up-to-date</li>
+                <li>Tailor the CV for specific job applications</li>
+                <li>Proofread for grammar and spelling errors</li>
+            </ul>
+        </div>
+
+        <div class="text-center mt-4">
+            <a href="{% url 'cv_form' %}" class="btn btn-primary">
+                🆕 Create Another CV
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+    function downloadCV() {
+        const cvContent = document.getElementById('cvContent').innerText;
+        
+        // Create a blob and download link
+        const blob = new Blob([cvContent], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        
+        a.href = url;
+        a.download = 'AI_Generated_CV.txt';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+        
+        // Show success message
+        alert('CV downloaded successfully! For PDF format, copy the content and paste into a word processor.');
+    }
+
+    // Format the CV content better
+    document.addEventListener('DOMContentLoaded', function() {
+        const cvContent = document.getElementById('cvContent');
+        let content = cvContent.innerHTML;
+        
+        // Add some basic styling to the CV content
+        content = content.replace(/(PROFESSIONAL|PERSONAL|EDUCATION|SKILLS|EXPERIENCE|PROJECTS|SUMMARY)/g, 
+            '<strong class="text-primary">$1</strong>');
+        content = content.replace(/\n/g, '<br>');
+        
+        cvContent.innerHTML = content;
+    });
+</script>
+
+<style>
+    .cv-content {
+        font-family: 'Arial', sans-serif;
+        line-height: 1.6;
+        color: #333;
+        white-space: pre-wrap;
+    }
     
-    {% if messages %}
-        {% for message in messages %}
-            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
-        {% endfor %}
-    {% endif %}
+    .cv-content strong {
+        color: #2c3e50;
+        font-size: 1.1em;
+    }
     
-    <div class="cv-content">{{ cv_content }}</div>
+    .cv-content ul {
+        padding-left: 20px;
+    }
     
-    <a href="{% url 'download_pdf' %}" class="btn btn-primary">Download PDF</a>
-    <a href="{% url 'cv_form' %}" class="btn btn-secondary">Generate Another CV</a>
-</body>
-</html>
+    .cv-content li {
+        margin-bottom: 5px;
+    }
+</style>
+{% endblock %}
