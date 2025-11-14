@@ -8,39 +8,33 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import simpleSplit
 import io
 from .forms import CVForm, QUALIFICATION_CHOICES, FIELD_CHOICES, TECH_SKILLS, SOFT_SKILLS, WORK_TYPE_CHOICES
-from openai import OpenAI
+import openai
 from decouple import config
 
 # openai.api_key = config('OPENAI_API_KEY')
+openai.api_key = os.environ.get('OPENAI_API_KEY')
 
-client = OpenAI(api_key=os.environ.get('OPENAI_API_KEY'))
 
 def cv_form(request):
     if request.method == 'POST':
         form = CVForm(request.POST)
         if form.is_valid():
-            try:
-                cv_data = format_cv_data(form.cleaned_data)
-                ai_response = generate_cv_with_ai(cv_data)
-                
-                if ai_response and 'content' in ai_response:
-                    request.session['generated_cv'] = ai_response['content']
-                    return redirect('cv_result') 
-                else:
-                    messages.error(request, 'Failed to generate CV content. Please try again.')
-                    
-            except Exception as e:
-                messages.error(request, f'An error occurred: {str(e)}')
+            cv_data = format_cv_data(form.cleaned_data)
+            ai_response = generate_cv_with_ai(cv_data)
+            if ai_response and 'content' in ai_response:
+                request.session['generated_cv'] = ai_response['content']
 
-                cv_data = format_cv_data(form.cleaned_data)
-                template_cv = generate_template_cv(cv_data)
-                request.session['generated_cv'] = template_cv['content']
-                return redirect('cv_result')
+                return redirect('cv_result') 
+            else:
+                return render(request, 'cv_form.html', {
+                    'form': form,
+                    'error': 'Failed to generate CV. Please try again.'
+                })
 
     else:
         form = CVForm()
     return render(request, 'cv_form.html', {'form': form})
-
+   
 def format_cv_data(form_data):
     return{
         'basic_info':{
@@ -69,6 +63,17 @@ def format_cv_data(form_data):
         }
         
     }
+
+# def clean_cv_text(text):
+
+#     text = text.strip()
+
+#     box_chars_pattern = r'[■─═║╔╗╚╝╠╣╦╩╬┌┐└┘├┤┬┴┼]'
+#     text = re.sub(box_chars_pattern, '-', text)
+#     lines = text.split('\n')
+#     cleaned_lines = [line.strip() for line in lines]
+#     return '\n'.join(cleaned_lines)
+
 
 def generate_cv_with_ai(cv_data):
     """Generate CV content using OpenAI API with advanced prompt engineering"""
@@ -106,40 +111,40 @@ def generate_cv_with_ai(cv_data):
         IMPORTANT INSTRUCTIONS:
         1. If experience years is less than 1, treat as FRESHER and emphasize education, projects, and skills
         2. Create a comprehensive professional summary (3-4 lines) highlighting key strengths, education, technical skills, and career objectives
-        3. If role is empty, focus on academic projects and learning capabilities
+        3. If role is "NA", focus on academic projects and learning capabilities
         4. Make the CV look professional and suitable for entry-level positions
-        5. Include sections: Personal Information, Professional Summary, Education, Technical Skills, Soft Skills, Projects
-        6. Use consistent spacing - exactly ONE blank line between sections
-        7. Align all bullet points and content properly
-        8. Use simple dash lines (────) for section headers, NOT box characters
-        9. For bullet points: Use "• " at the start, indent second lines with 2 spaces
-        10. Keep all text left-aligned with consistent spacing
-        11. If experience is 0 years, write "Fresher" in experience section
-        12. Make sure there are no extra spaces at the start of lines
-        13. Use proper line breaks and avoid long paragraphs
+        5. Include sections: Personal Information, Professional Summary, Education, Technical Skills, Soft Skills, Projects, and any relevant certifications or achievements
+        1. Use consistent spacing - exactly ONE blank line between sections
+        2. Align all bullet points and content properly
+        3. Use simple dash lines (────) for section headers, NOT box characters
+        4. For bullet points:
+           - Use "• " at the start of each bullet
+           - Second line of bullet points should be indented with 2 spaces
+        5. Section order: Personal Information, Education, Technical Skills, Soft Skills, Work Experience, Projects, Summary
+        6. Keep all text left-aligned with consistent spacing
+        7. If experience is 0 years, write "Fresher" in experience section
+        8. Make sure there are no extra spaces at the start of lines
+        9. Use proper line breaks and avoid long paragraphs
         
-        Generate a clean, professionally formatted CV that would be attractive to employers for { 'entry-level/fresher positions' if is_fresher else 'experienced positions' }.
+        EXAMPLE FORMAT:
+        SECTION NAME
+        ────────────
+        • Bullet point one
+            Additional details on next line
+        • Bullet point two
+            Additional details on next line
+        
+        Generate a clean, professionally formatted CV.
+        that would be attractive to employers for { 'entry-level/fresher positions' if is_fresher else 'experienced positions' }.
         """
-
         
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
-                {
-                    "role": "system", 
-                    "content": "You are a professional CV writer and career advisor. Create well-structured, professional resumes with proper formatting."
-                },
-                {
-                    "role": "user", 
-                    "content": prompt
-                }
-            ],
+        response = openai.Completion.create(
+            model="gpt-3.5-turbo-instruct",
+            prompt=prompt,
             max_tokens=1000,
-            temperature=0.7
-
         )
         
-        generated_text = response.choices[0].message.content.strip()
+        generated_text = response.choices[0].text.strip()
         return {'content': generated_text}
         
     except Exception as e:
@@ -150,7 +155,7 @@ def generate_template_cv(cv_data):
     """Fallback template-based CV generation"""
     experience_years = cv_data['experience']['years']
     is_fresher = experience_years < 1
-    if is_fresher or not cv_data['experience']['role']:
+    if is_fresher:
         experience_section = "EXPERIENCE\n───────────\n• Fresher - Seeking entry-level opportunities to apply academic knowledge and technical skills"
     else:
         experience_section = f"EXPERIENCE\n───────────\n• {cv_data['experience']['role']}\n  {cv_data['experience']['organization']} | {cv_data['experience']['years']} years | {cv_data['experience']['work_type']}"
@@ -200,9 +205,7 @@ def generate_template_cv(cv_data):
     ───────────────
     • {cv_data['experience']['role']}
       {cv_data['experience']['organization']} | {cv_data['experience']['years']} years | {cv_data['experience']['work_type']}
-
-    {experience_section}
-
+    
     PROJECTS
     ────────
     {chr(10).join(['• ' + project for project in cv_data['projects']]) if cv_data['projects'] else '• No projects specified'}
