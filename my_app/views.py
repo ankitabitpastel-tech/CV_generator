@@ -10,8 +10,6 @@ from .forms import CVForm, QUALIFICATION_CHOICES, FIELD_CHOICES, TECH_SKILLS, SO
 from decouple import config
 from openai import OpenAI
 
-client = OpenAI(api_key=os.environ["OPENAI_API_KEY"])
-
 
 def cv_form(request):
     if request.method == 'POST':
@@ -65,6 +63,8 @@ def format_cv_data(form_data):
 def generate_cv_with_ai(cv_data):
     """Generate CV content using OpenAI API with advanced prompt"""
     try:
+        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+
         experience_years = cv_data['experience']['years']
         is_fresher = experience_years < 1
         
