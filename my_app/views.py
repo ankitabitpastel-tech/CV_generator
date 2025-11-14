@@ -17,10 +17,10 @@ def cv_form(request):
         if form.is_valid():
             cv_data = format_cv_data(form.cleaned_data)
             ai_response = generate_cv_with_ai(cv_data)
-            if ai_response and 'content' in ai_response:
+            if ai_response and ai_response.get("content"):
                 request.session['generated_cv'] = ai_response['content']
+                return redirect('cv_result')
 
-                return redirect('cv_result') 
             else:
                 return render(request, 'cv_form.html', {
                     'form': form,
@@ -89,6 +89,8 @@ def generate_cv_with_ai(cv_data):
         )
 
         content = response.output_text
+        if not content:
+            return None
 
         return {"content": content}
     
