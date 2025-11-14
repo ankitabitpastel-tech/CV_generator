@@ -32,6 +32,7 @@ def cv_form(request):
     return render(request, 'cv_form.html', {'form': form})
    
 def format_cv_data(form_data):
+
     return{
         'basic_info':{
             'name': form_data['name'],
@@ -63,7 +64,8 @@ def format_cv_data(form_data):
 def generate_cv_with_ai(cv_data):
     """Generate CV content using OpenAI API with advanced prompt"""
     try:
-        client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        # client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY"))
+        client = OpenAI(api_key=config("OPENAI_API_KEY"))
 
         experience_years = cv_data['experience']['years']
         is_fresher = experience_years < 1
@@ -76,7 +78,7 @@ def generate_cv_with_ai(cv_data):
         IMPORTANT RULES:
         - Use clean formatting with section headers and bullet points
         - Keep everything left-aligned
-        - If experience < 1, treat as fresher
+        - If experience < 1, treat as fresher and adjust experience section
         - Add Professional Summary, Skills, Projects, Education, Experience
         """
 
@@ -88,9 +90,10 @@ def generate_cv_with_ai(cv_data):
             ]
         )
 
-        content = response["choices"][0]["message"]["content"]
-
+        # content = response["choices"][0]["message"]["content"]
+        content = response.choices[0].message.content
         return {"content": content}
+    
     except Exception as e:
         print("OpenAI API Error:", e)
         return None

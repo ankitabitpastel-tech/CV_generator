@@ -167,6 +167,7 @@ DEBUG = False
 
 ALLOWED_HOSTS = ['*']
 
+OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
 INSTALLED_APPS = [
     'django.contrib.staticfiles',  
