@@ -246,40 +246,56 @@ def download_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="AI_Generated_CV.pdf"'
 
     return response
+
+def normalize_list(value):
+    if value is None:
+        return []
+    if isinstance(value, list):
+        return [str(v).lower().strip() for v in value if v]
+    if isinstance(value, str):
+        return [v.lower().strip() for v in value.split(",") if v.strip()]
+    return []
+
 def calculate_similarity(cv, job):
 
-    cv_skills = set(s.lower() for s in cv["skills"]["technical"])
-    job_skills = set(s.strip().lower() for s in job.skills.split(','))
+    cv_skills = normalize_list(cv["skills"]["technical"])
+    job_skills = normalize_list(job.skills)
 
     skill_score = (
-        len(cv_skills & job_skills) / len(cv_skills | job_skills)
-        if len(cv_skills | job_skills) > 0 else 0
+        len(set(cv_skills) & set(job_skills)) / len(set(cv_skills) | set(job_skills))
+        if (cv_skills or job_skills) else 0
     )
 
-    cv_soft = set(s.lower() for s in cv["skills"]["soft"])
-    job_soft = set(s.strip().lower() for s in job.soft_skills.split(','))
+
+    cv_soft = normalize_list(cv["skills"]["soft"])
+    job_soft = normalize_list(job.soft_skills)
 
     soft_skill_score = (
-        len(cv_soft & job_soft) / len(cv_soft | job_soft)
-        if len(cv_soft | job_soft) > 0 else 0
+        len(set(cv_soft) & set(job_soft)) / len(set(cv_soft) | set(job_soft))
+        if (cv_soft or job_soft) else 0
     )
 
-    edu = cv["education"]["qualification"].lower()
+
+    edu = (cv["education"]["qualification"] or "").lower()
     job_edu = (job.education_required or "").lower()
 
-    if edu in job_edu:
+    if job_edu and edu in job_edu:
         education_score = 1
-    elif edu.split()[0] in job_edu:
-        education_score = 0.6
     else:
         education_score = 0
 
-    cv_exp = cv["experience"]["years"]
-    job_exp = job.experience_required
+
+    try:
+        cv_exp = int(cv["experience"]["years"])
+    except:
+        cv_exp = 0
+
+    job_exp = job.experience_required or 0
 
     diff = abs(cv_exp - job_exp)
     experience_score = max(0, 1 - (diff / max(job_exp, 1)))
 
+    # --- Weighted total ---
     final_score = (
         skill_score * 0.40 +
         soft_skill_score * 0.15 +
@@ -295,14 +311,14 @@ def recommended_jobs(cv_data):
     recommendations = []
 
     for job in all_jobs:
-        score = calculate_similarity(cv_data, job)
-        recommendations.append({
-            "job": job,
-            "score": score
-        })
+        try:
+            score = calculate_similarity(cv_data, job)
+            recommendations.append({"job": job, "score": score})
+        except Exception as e:
+            print("Error in job similarity:", e)
+            continue
     
     recommendations.sort(key=lambda x: x["score"], reverse=True)
-
     return recommendations
 
 
