@@ -126,7 +126,7 @@
             </div>
 
             <!-- Projects Section -->
-            <div class="form-section">
+            <!-- <div class="form-section">
                 <h2 class="section-title">🚀 Projects</h2>
                 <div class="mb-3">
                     <label for="{{ form.projects.id_for_label }}" class="form-label">
@@ -135,7 +135,30 @@
                     {{ form.projects }}
                     <div class="form-text">List each project on a new line. Include project name, technologies used, and key achievements.</div>
                 </div>
+            </div> -->
+            <!-- Projects Section -->
+            <div class="form-section">
+                <h2 class="section-title">🚀 Projects</h2>
+
+                <h5>Select Project Categories</h5>
+                <div class="skills-grid mb-4">
+                    {% for checkbox in form.selected_projects %}
+                        <div class="checkbox-item form-check">
+                            {{ checkbox.tag }}
+                            <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                {{ checkbox.choice_label }}
+                            </label>
+                        </div>
+                    {% endfor %}
+                </div>
+
+                <h5>Add Custom Project Descriptions</h5>
+                <div class="mb-3">
+                    {{ form.projects }}
+                    <div class="form-text">Write each project on a new line.</div>
+                </div>
             </div>
+
 
             <!-- Experience Section -->
             <div class="form-section">

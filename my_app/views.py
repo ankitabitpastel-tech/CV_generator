@@ -7,7 +7,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import simpleSplit
 import io
 from django.conf import settings
-from .forms import CVForm, QUALIFICATION_CHOICES, FIELD_CHOICES, TECH_SKILLS, SOFT_SKILLS, WORK_TYPE_CHOICES
+from .forms import CVForm, QUALIFICATION_CHOICES, FIELD_CHOICES, TECH_SKILLS, SOFT_SKILLS, WORK_TYPE_CHOICES, PROJECT_CHOICES
 from decouple import config
 from openai import OpenAI
 
@@ -29,7 +29,7 @@ def cv_form(request):
                 request.session['generated_cv'] = ai_response['content']
                 return redirect('cv_result')
             else:
-                print("❌ ERROR: AI returned None or empty content")
+                print("ERROR: AI returned None or empty content")
                 return render(request, 'cv_form.html', {
                     'form': form,
                     'error': 'Failed to generate CV. Please try again.'
@@ -41,6 +41,12 @@ def cv_form(request):
     return render(request, 'cv_form.html', {'form': form})
    
 def format_cv_data(form_data):
+
+    selected_project_names = [
+        dict(PROJECT_CHOICES).get(code)
+        for code in form_data['selected_projects']
+    ]
+    typed_projects = form_data['projects'].split('\n') if form_data['projects'] else []
 
     return{
         'basic_info':{
@@ -60,7 +66,12 @@ def format_cv_data(form_data):
             'technical': [dict(TECH_SKILLS).get(skill) for skill in form_data['technical_skills']],
             'soft': [dict(SOFT_SKILLS).get(skill) for skill in form_data['soft_skills']]
         },
-        'projects': form_data['projects'].split('\n') if form_data['projects'] else [],
+        'projects': {
+            'selected': selected_project_names,
+            'custom': typed_projects
+        },
+
+        # 'projects': form_data['projects'].split('\n') if form_data['projects'] else [],
         'experience': {
             'years': form_data['years_experience'],
             'work_type': dict(WORK_TYPE_CHOICES).get(form_data['work_type']),

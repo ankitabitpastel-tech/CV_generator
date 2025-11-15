@@ -52,6 +52,16 @@ SOFT_SKILLS = [
     ('critical_thinking', 'Critical Thinking'),
 ]
 
+PROJECT_CHOICES = [
+    ('web', 'Web Development'),
+    ('mobile', 'Mobile App'),
+    ('ml', 'Machine Learning'),
+    ('business', 'Business Marketing'),
+    ('media', 'Media Handling'),
+]
+
+
+
 WORK_TYPE_CHOICES = [
     ('full_time', 'Full-time'),
     ('part_time', 'Part-time'),
@@ -94,12 +104,25 @@ class CVForm(forms.Form):
         widget=forms.CheckboxSelectMultiple,
         required=True
     )
-    
-    projects = forms.CharField(
-        widget=forms.Textarea,
+
+    selected_projects = forms.MultipleChoiceField(
+        choices=PROJECT_CHOICES,
+        widget=forms.CheckboxSelectMultiple,
         required=False,
-        help_text="Describe your projects (one per line)"
+        help_text="Select the types of projects you have worked on"
     )
+
+    projects = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 3}),
+        required=False,
+        help_text="Describe any custom projects (one per line)"
+    )
+    
+    # projects = forms.CharField(
+    #     widget=forms.Textarea,
+    #     required=False,
+    #     help_text="Describe your projects (one per line)"
+    # )
     
     years_experience = forms.IntegerField(
         min_value=0,
