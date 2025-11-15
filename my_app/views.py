@@ -2,6 +2,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
 import os, re
+from .models import jobs
 from reportlab.lib.pagesizes import letter
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import simpleSplit
@@ -21,8 +22,9 @@ def cv_form(request):
             print("CLEANED DATA:", form.cleaned_data)
 
             cv_data = format_cv_data(form.cleaned_data)
-            ai_response = generate_cv_with_ai(cv_data)
+            request.session['cv_data'] = cv_data   
 
+            ai_response = generate_cv_with_ai(cv_data)
             print("AI RESPONSE RAW:", ai_response)
 
             if ai_response and ai_response.get("content"):
@@ -188,10 +190,15 @@ def generate_template_cv(cv_data):
 
 def cv_result(request):
     cv_content = request.session.get('generated_cv', None)
-    if cv_content is None:
+    cv_data = request.session.get('cv_data', None)
+
+    if cv_content is None or cv_data is None:
         return redirect('cv_form')
-    
-    return render(request, 'cv_result.html', {'cv_content': cv_content})
+    recommended = recommended_jobs(cv_data)[:10]
+    return render(request, 'cv_result.html', {
+        'cv_content': cv_content,
+        'recommended_jobs': recommended
+    })
 
 def download_pdf(request):
     cv_content = request.session.get('generated_cv', None)
@@ -239,5 +246,63 @@ def download_pdf(request):
     response['Content-Disposition'] = 'attachment; filename="AI_Generated_CV.pdf"'
 
     return response
+def calculate_similarity(cv, job):
+
+    cv_skills = set(s.lower() for s in cv["skills"]["technical"])
+    job_skills = set(s.strip().lower() for s in job.skills.split(','))
+
+    skill_score = (
+        len(cv_skills & job_skills) / len(cv_skills | job_skills)
+        if len(cv_skills | job_skills) > 0 else 0
+    )
+
+    cv_soft = set(s.lower() for s in cv["skills"]["soft"])
+    job_soft = set(s.strip().lower() for s in job.soft_skills.split(','))
+
+    soft_skill_score = (
+        len(cv_soft & job_soft) / len(cv_soft | job_soft)
+        if len(cv_soft | job_soft) > 0 else 0
+    )
+
+    edu = cv["education"]["qualification"].lower()
+    job_edu = (job.education_required or "").lower()
+
+    if edu in job_edu:
+        education_score = 1
+    elif edu.split()[0] in job_edu:
+        education_score = 0.6
+    else:
+        education_score = 0
+
+    cv_exp = cv["experience"]["years"]
+    job_exp = job.experience_required
+
+    diff = abs(cv_exp - job_exp)
+    experience_score = max(0, 1 - (diff / max(job_exp, 1)))
+
+    final_score = (
+        skill_score * 0.40 +
+        soft_skill_score * 0.15 +
+        education_score * 0.20 +
+        experience_score * 0.25
+    ) * 100
+
+    return round(final_score, 2)
+
+
+def recommended_jobs(cv_data):
+    all_jobs = jobs.objects.all()
+    recommendations = []
+
+    for job in all_jobs:
+        score = calculate_similarity(cv_data, job)
+        recommendations.append({
+            "job": job,
+            "score": score
+        })
+    
+    recommendations.sort(key=lambda x: x["score"], reverse=True)
+
+    return recommendations
 
 

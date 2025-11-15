@@ -45,6 +45,49 @@
         </div>
     </div>
 </div>
+<!-- Recommended Jobs Section -->
+<div class="mt-5">
+    <h3 class="mb-3">🔥 Recommended Jobs for You</h3>
+
+    {% if recommended_jobs %}
+        <div class="list-group">
+
+            {% for item in recommended_jobs %}
+                <div class="list-group-item mb-2 shadow-sm p-3 border rounded">
+
+                    <div class="d-flex justify-content-between">
+                        <h5 class="mb-1">{{ item.job.title }}</h5>
+                        <span class="badge bg-success fs-6">
+                            {{ item.score }}%
+                        </span>
+                    </div>
+
+                    <p class="mb-1 text-muted">
+                        {{ item.job.company }} — {{ item.job.location }}
+                    </p>
+
+                    <p class="mb-1">
+                        <strong>Experience Required:</strong> {{ item.job.experience_required }} years<br>
+                        <strong>Job Type:</strong> {{ item.job.job_type }}
+                    </p>
+
+                    <p class="mb-0">
+                        <strong>Key Skills:</strong>
+                        {{ item.job.skills|join:", " }}
+                    </p>
+
+                </div>
+            {% endfor %}
+
+        </div>
+
+    {% else %}
+        <div class="alert alert-warning">
+            No matching jobs found.
+        </div>
+    {% endif %}
+</div>
+
 {% endblock %}
 
 {% block extra_scripts %}
