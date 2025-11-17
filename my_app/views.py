@@ -210,15 +210,56 @@ def generate_cv_with_ai(cv_data):
         prompt = f"""
         Create a professional, well-formatted CV/resume using the following information:
 
-        {cv_data}
+                
+        [FULL NAME]
+        [City, State]
 
-        IMPORTANT RULES:
-        - Use clean formatting with section headers and bullet points
-        - Keep everything left-aligned
-        - If experience < 1, treat as fresher and adjust experience section
-        - Add Professional Summary, Skills, Projects, Education, Experience
-        - No use of ## or ** please make it cleane and looking good, you may bold the head lines 
+        Email: [email]
+        Phone: [phone]
+
+        Summary
+        [3-4 line professional summary focusing on key skills and career objectives. Use complete sentences.]
+
+        Education
+        [Degree Name]
+        [University Name]
+        Passing Year: [year]
+        Grade: [grade]
+
+        Skills
+        Technical Skills: [comma-separated list of technical skills]
+        Soft Skills: [comma-separated list of soft skills]
+
+        Projects
+        [Project 1 description in 1-2 sentences]
+        [Project 2 description in 1-2 sentences]
+
+        Work Experience
+        [If experience < 1 year: "No professional work experience. Seeking entry-level opportunities to apply academic knowledge and technical skills."]
+
+        IMPORTANT FORMATTING RULES:
+        - NO markdown symbols (#, *, **, -)
+        - NO bullet points
+        - NO section headers with symbols
+        - Use plain text only
+        - Leave one blank line between sections
+        - Section names should be on their own line in Title Case
+        - Contact info should be simple and clean
+
+        Now create the CV for this data:
+        Name: {cv_data['basic_info']['name']}
+        Email: {cv_data['basic_info']['email']}
+        Phone: {cv_data['basic_info']['phone']}
+        Address: {cv_data['basic_info']['address']}
+        Education: {cv_data['education']['qualification']} in {cv_data['education']['field']} from {cv_data['education']['institution']}, Year: {cv_data['education']['year']}, Grade: {cv_data['education']['grade']}
+        Technical Skills: {', '.join(cv_data['skills']['technical'])}
+        Soft Skills: {', '.join(cv_data['skills']['soft'])}
+        Projects: {', '.join(cv_data['projects']['selected'] + cv_data['projects']['custom'])}
+        Experience: {cv_data['experience']['years']} years
+
+        Make sure the output follows the exact format above with NO markdown.
         """
+
 
         response = client.responses.create(
             model="gpt-4o-mini",
