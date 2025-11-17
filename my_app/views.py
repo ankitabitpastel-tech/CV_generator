@@ -313,10 +313,8 @@ def cv_result(request):
     if cv_content is None or cv_data is None:
         return redirect('cv_form')
     recommended = recommended_jobs(cv_data)[:10]
-    formatted_cv = format_cv_html(cv_content)
-
     return render(request, 'cv_result.html', {
-        'cv_content': formatted_cv,
+        'cv_content': cv_content,
         'recommended_jobs': recommended
     })
 
@@ -441,40 +439,3 @@ def recommended_jobs(cv_data):
     recommendations.sort(key=lambda x: x["score"], reverse=True)
     return recommendations
 
-def format_cv_html(cv_text):
-    from django.utils.html import escape
-
-    lines = cv_text.split("\n")
-    html = ""
-
-    for line in lines:
-        line = line.strip()
-
-        if not line:
-            continue
-
-        if line.startswith("## "):
-            title = line.replace("## ", "")
-            html += f"<h2 class='cv-section'>{escape(title)}</h2>"
-        
-
-        elif line.startswith("### "):
-            title = line.replace("### ", "")
-            html += f"<h3 class='cv-subsection'>{escape(title)}</h3>"
-        
-
-        elif line.startswith("- "):
-            if not html.endswith("</ul>"):
-                html += "<ul class='cv-list'>"
-            html += f"<li>{escape(line[2:])}</li>"
-        
-        else:
-
-            if html.endswith("</li>"):
-                html += "</ul>"
-            html += f"<p>{escape(line)}</p>"
-
-    if html.endswith("</li>"):
-        html += "</ul>"
-
-    return html
