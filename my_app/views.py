@@ -12,35 +12,153 @@ from .forms import CVForm, QUALIFICATION_CHOICES, FIELD_CHOICES, TECH_SKILLS, SO
 from decouple import config
 from openai import OpenAI
 
+
+def cv_stepper(request, step=1):
+
+    total_steps = 5
+    
+    if 'form_data' not in request.session:
+        request.session['form_data'] = {}
+    
+    if request.method == 'POST':
+        form = get_form_for_step(step, request.POST, initial_data=request.session['form_data'])
+        
+        if form.is_valid():
+
+            request.session['form_data'].update(form.cleaned_data)
+            request.session.modified = True
+            
+            if 'prev_step' in request.POST:
+                return redirect('cv_stepper', step=step-1)
+            elif step < total_steps:
+                return redirect('cv_stepper', step=step+1)
+            else:
+                return generate_final_cv(request)
+        else:
+            print(f"Form errors at step {step}:", form.errors)
+    else:
+        form = get_form_for_step(step, initial_data=request.session['form_data'])
+    
+    progress = int((step / total_steps) * 100)
+    
+    return render(request, 'cv_stepper.html', {
+        'form': form,
+        'current_step': step,
+        'total_steps': total_steps,
+        'progress': progress,
+        'step_titles': {
+            1: "Personal Info",
+            2: "Education",
+            3: "Skills",
+            4: "Projects",
+            5: "Experience"
+        }
+    })
+
+def get_form_for_step(step, data=None, initial_data=None):
+    """Get appropriate form for each step"""
+    from .forms import CVStepForm
+    
+    if step == 1:
+        fields = ['name', 'email', 'phone', 'address']
+    elif step == 2:
+        fields = ['highest_qualification', 'field_of_study', 'institution', 'passing_year', 'grade']
+    elif step == 3:
+        fields = ['technical_skills', 'soft_skills']
+    elif step == 4:
+        fields = ['selected_projects', 'projects']
+    elif step == 5:
+        fields = ['years_experience', 'work_type', 'role', 'organization']
+    else:
+        fields = []
+    
+    return CVStepForm(data, initial=initial_data, fields=fields)
+
+def generate_final_cv(request):
+    """Generate CV after all steps are completed"""
+    form_data = request.session.get('form_data', {})
+    
+    if not form_data:
+        messages.error(request, "No form data found. Please start over.")
+        return redirect('cv_stepper', step=1)
+    
+    final_form = CVForm(form_data)
+    
+    if final_form.is_valid():
+        cv_data = format_cv_data(final_form.cleaned_data)
+        request.session['cv_data'] = cv_data
+        
+        ai_response = generate_cv_with_ai(cv_data)
+        
+        if ai_response and ai_response.get("content"):
+            request.session['generated_cv'] = ai_response['content']
+
+            if 'form_data' in request.session:
+                del request.session['form_data']
+            return redirect('cv_result')
+        else:
+
+            template_response = generate_template_cv(cv_data)
+            request.session['generated_cv'] = template_response['content']
+            if 'form_data' in request.session:
+                del request.session['form_data']
+            return redirect('cv_result')
+    else:
+        messages.error(request, "Please complete all required fields.")
+        return redirect('cv_stepper', step=1)
+
 def cv_form(request):
+
     if request.method == 'POST':
         form = CVForm(request.POST)
-        print("⚠️ CV FORM SUBMITTED")
-        print("FORM VALID:", form.is_valid())
-
+        
         if form.is_valid():
-            print("CLEANED DATA:", form.cleaned_data)
-
             cv_data = format_cv_data(form.cleaned_data)
             request.session['cv_data'] = cv_data   
-
             ai_response = generate_cv_with_ai(cv_data)
-            print("AI RESPONSE RAW:", ai_response)
-
+            
             if ai_response and ai_response.get("content"):
                 request.session['generated_cv'] = ai_response['content']
                 return redirect('cv_result')
             else:
-                print("ERROR: AI returned None or empty content")
                 return render(request, 'cv_form.html', {
                     'form': form,
                     'error': 'Failed to generate CV. Please try again.'
                 })
-
     else:
         form = CVForm()
-
     return render(request, 'cv_form.html', {'form': form})
+
+
+# def cv_form(request):
+#     if request.method == 'POST':
+#         form = CVForm(request.POST)
+#         print("⚠️ CV FORM SUBMITTED")
+#         print("FORM VALID:", form.is_valid())
+
+#         if form.is_valid():
+#             print("CLEANED DATA:", form.cleaned_data)
+
+#             cv_data = format_cv_data(form.cleaned_data)
+#             request.session['cv_data'] = cv_data   
+
+#             ai_response = generate_cv_with_ai(cv_data)
+#             print("AI RESPONSE RAW:", ai_response)
+
+#             if ai_response and ai_response.get("content"):
+#                 request.session['generated_cv'] = ai_response['content']
+#                 return redirect('cv_result')
+#             else:
+#                 print("ERROR: AI returned None or empty content")
+#                 return render(request, 'cv_form.html', {
+#                     'form': form,
+#                     'error': 'Failed to generate CV. Please try again.'
+#                 })
+
+#     else:
+#         form = CVForm()
+
+#     return render(request, 'cv_form.html', {'form': form})
    
 def format_cv_data(form_data):
 

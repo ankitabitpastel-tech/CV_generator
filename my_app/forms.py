@@ -137,3 +137,14 @@ class CVForm(forms.Form):
     organization = forms.CharField(max_length=100, required=False)
 
     __all__ = ['CVForm', 'QUALIFICATION_CHOICES', 'FIELD_CHOICES', 'TECH_SKILLS', 'SOFT_SKILLS', 'WORK_TYPE_CHOICES']
+
+
+class CVStepForm(forms.Form):
+
+    def __init__(self, *args, **kwargs):
+        fields_to_include = kwargs.pop('fields', [])
+        super().__init__(*args, **kwargs)
+        
+        for field_name in list(self.fields.keys()):
+            if field_name not in fields_to_include:
+                del self.fields[field_name]
