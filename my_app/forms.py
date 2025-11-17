@@ -144,7 +144,13 @@ class CVStepForm(forms.Form):
     def __init__(self, *args, **kwargs):
         fields_to_include = kwargs.pop('fields', [])
         super().__init__(*args, **kwargs)
+
+        full_form = CVForm()
+
+        for field in fields_to_include:
+            self.fields[field] = full_form.fields[field]
         
-        for field_name in list(self.fields.keys()):
-            if field_name not in fields_to_include:
-                del self.fields[field_name]
+        if 'initial' in kwargs and kwargs['initial']:
+            for key, value in kwargs['initial'].items():
+                if key in self.fields:
+                    self.fields[key].initial = value
