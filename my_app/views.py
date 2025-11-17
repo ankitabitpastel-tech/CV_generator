@@ -217,6 +217,7 @@ def generate_cv_with_ai(cv_data):
         - Keep everything left-aligned
         - If experience < 1, treat as fresher and adjust experience section
         - Add Professional Summary, Skills, Projects, Education, Experience
+        - No ## or ** please make it cleane and looking good
         """
 
         response = client.responses.create(
