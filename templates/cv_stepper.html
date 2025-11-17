@@ -1,0 +1,677 @@
+{% extends 'base.html' %}
+
+{% block title %}Create Your CV - Step {{ current_step }}{% endblock %}
+
+{% block extra_css %}
+<style>
+/* Stepper Styles */
+.stepper-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 40px;
+    position: relative;
+}
+
+.stepper-line {
+    position: absolute;
+    top: 20px;
+    left: 10%;
+    width: 80%;
+    height: 3px;
+    background: #dee2e6;
+    z-index: 1;
+}
+
+.progress-fill {
+    height: 3px;
+    background: #198754;
+    width: 0%; /* Will be set by JavaScript */
+    transition: width 0.5s ease;
+}
+
+.step-item {
+    position: relative;
+    text-align: center;
+    width: 20%;
+    z-index: 2;
+}
+
+.step-circle {
+    height: 40px;
+    width: 40px;
+    border-radius: 50%;
+    margin: 0 auto;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #dee2e6;
+    color: #6c757d;
+    font-weight: bold;
+    border: 3px solid white;
+    transition: all 0.3s ease;
+}
+
+.step-active .step-circle {
+    background: #198754;
+    color: white;
+    transform: scale(1.1);
+}
+
+.step-completed .step-circle {
+    background: #198754;
+    color: white;
+}
+
+.step-title {
+    font-size: 12px;
+    margin-top: 8px;
+    font-weight: 500;
+    color: #6c757d;
+}
+
+.step-active .step-title {
+    color: #198754;
+    font-weight: 600;
+}
+
+/* Form Styles */
+.form-section {
+    background: #f8f9fa;
+    padding: 30px;
+    border-radius: 15px;
+    margin-bottom: 20px;
+    border-left: 5px solid #0d6efd;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.section-title {
+    color: #2c3e50;
+    margin-bottom: 25px;
+    font-weight: 600;
+    border-bottom: 2px solid #e9ecef;
+    padding-bottom: 10px;
+}
+
+.skills-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    margin-top: 15px;
+}
+
+.checkbox-item {
+    background: white;
+    padding: 12px 15px;
+    border-radius: 8px;
+    border: 2px solid #e9ecef;
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.checkbox-item:hover {
+    background: #f8f9fa;
+    border-color: #0d6efd;
+    transform: translateY(-2px);
+}
+
+.checkbox-item .form-check-input:checked + .form-check-label {
+    color: #198754;
+    font-weight: 600;
+}
+
+.btn-navigation {
+    padding: 12px 30px;
+    font-weight: 600;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+}
+
+.btn-generate {
+    background: linear-gradient(45deg, #667eea, #764ba2);
+    border: none;
+    padding: 15px 40px;
+    font-size: 1.2rem;
+    font-weight: 600;
+}
+
+.btn-generate:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+}
+
+.alert-info {
+    border-left: 4px solid #17a2b8;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row justify-content-center">
+        <div class="col-lg-10 col-xl-8">
+            <!-- Header -->
+            <div class="text-center mb-5">
+                <h1 class="display-5 fw-bold mb-3 text-primary">Create Your Professional CV</h1>
+                <p class="lead text-muted">Step {{ current_step }} of {{ total_steps }}</p>
+            </div>
+
+            <!-- Stepper Progress -->
+            <div class="stepper-container">
+                <div class="stepper-line">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+                
+                <div class="step-item {% if current_step >= 1 %}step-completed{% endif %} {% if current_step == 1 %}step-active{% endif %}">
+                    <div class="step-circle">1</div>
+                    <div class="step-title">Personal Info</div>
+                </div>
+                <div class="step-item {% if current_step >= 2 %}step-completed{% endif %} {% if current_step == 2 %}step-active{% endif %}">
+                    <div class="step-circle">2</div>
+                    <div class="step-title">Education</div>
+                </div>
+                <div class="step-item {% if current_step >= 3 %}step-completed{% endif %} {% if current_step == 3 %}step-active{% endif %}">
+                    <div class="step-circle">3</div>
+                    <div class="step-title">Skills</div>
+                </div>
+                <div class="step-item {% if current_step >= 4 %}step-completed{% endif %} {% if current_step == 4 %}step-active{% endif %}">
+                    <div class="step-circle">4</div>
+                    <div class="step-title">Projects</div>
+                </div>
+                <div class="step-item {% if current_step >= 5 %}step-completed{% endif %} {% if current_step == 5 %}step-active{% endif %}">
+                    <div class="step-circle">5</div>
+                    <div class="step-title">Experience</div>
+                </div>
+            </div>
+
+            <!-- Hidden element to store Django variables -->
+            <div id="templateData" 
+                 data-current-step="{{ current_step }}" 
+                 data-progress="{{ progress }}"
+                 style="display: none;">
+            </div>
+
+            <!-- Messages -->
+            {% if messages %}
+                {% for message in messages %}
+                    <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+
+            <!-- Form -->
+            <form method="post" action="{% url 'cv_stepper' current_step %}" id="cvStepperForm">
+                {% csrf_token %}
+                
+                <!-- Step 1: Personal Information -->
+                {% if current_step == 1 %}
+                <div class="form-section">
+                    <h2 class="section-title">📝 Personal Information</h2>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.name.id_for_label }}" class="form-label fw-bold">Full Name *</label>
+                            {{ form.name }}
+                            {% if form.name.errors %}
+                                <div class="text-danger small">{{ form.name.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label fw-bold">Email *</label>
+                            {{ form.email }}
+                            {% if form.email.errors %}
+                                <div class="text-danger small">{{ form.email.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.phone.id_for_label }}" class="form-label fw-bold">Phone *</label>
+                            {{ form.phone }}
+                            {% if form.phone.errors %}
+                                <div class="text-danger small">{{ form.phone.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.address.id_for_label }}" class="form-label fw-bold">Address *</label>
+                            {{ form.address }}
+                            {% if form.address.errors %}
+                                <div class="text-danger small">{{ form.address.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Step 2: Education -->
+                {% if current_step == 2 %}
+                <div class="form-section">
+                    <h2 class="section-title">🎓 Education Details</h2>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.highest_qualification.id_for_label }}" class="form-label fw-bold">Highest Qualification *</label>
+                            {{ form.highest_qualification }}
+                            {% if form.highest_qualification.errors %}
+                                <div class="text-danger small">{{ form.highest_qualification.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.field_of_study.id_for_label }}" class="form-label fw-bold">Field of Study *</label>
+                            {{ form.field_of_study }}
+                            {% if form.field_of_study.errors %}
+                                <div class="text-danger small">{{ form.field_of_study.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.institution.id_for_label }}" class="form-label fw-bold">Institution *</label>
+                            {{ form.institution }}
+                            {% if form.institution.errors %}
+                                <div class="text-danger small">{{ form.institution.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.passing_year.id_for_label }}" class="form-label fw-bold">Passing Year *</label>
+                            {{ form.passing_year }}
+                            {% if form.passing_year.errors %}
+                                <div class="text-danger small">{{ form.passing_year.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.grade.id_for_label }}" class="form-label fw-bold">Grade/CGPA *</label>
+                            {{ form.grade }}
+                            {% if form.grade.errors %}
+                                <div class="text-danger small">{{ form.grade.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Step 3: Skills -->
+                {% if current_step == 3 %}
+                <div class="form-section">
+                    <h2 class="section-title">💡 Skills & Expertise</h2>
+                    
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">Technical Skills *</h5>
+                        <div class="skills-grid">
+                            {% for checkbox in form.technical_skills %}
+                                <div class="checkbox-item form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.technical_skills.errors %}
+                            <div class="text-danger small">{{ form.technical_skills.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">Soft Skills *</h5>
+                        <div class="skills-grid">
+                            {% for checkbox in form.soft_skills %}
+                                <div class="checkbox-item form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.soft_skills.errors %}
+                            <div class="text-danger small">{{ form.soft_skills.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Step 4: Projects -->
+                {% if current_step == 4 %}
+                <div class="form-section">
+                    <h2 class="section-title">🚀 Projects & Portfolio</h2>
+
+                    <div class="mb-4">
+                        <h5 class="fw-bold mb-3">Select Project Categories</h5>
+                        <div class="skills-grid mb-4">
+                            {% for checkbox in form.selected_projects %}
+                                <div class="checkbox-item form-check">
+                                    {{ checkbox.tag }}
+                                    <label class="form-check-label" for="{{ checkbox.id_for_label }}">
+                                        {{ checkbox.choice_label }}
+                                    </label>
+                                </div>
+                            {% endfor %}
+                        </div>
+                        {% if form.selected_projects.errors %}
+                            <div class="text-danger small">{{ form.selected_projects.errors }}</div>
+                        {% endif %}
+                    </div>
+
+                    <div class="mb-3">
+                        <h5 class="fw-bold mb-3">Add Custom Project Descriptions</h5>
+                        {{ form.projects }}
+                        <div class="form-text">Write each project on a new line. Include project name, technologies used, and key achievements.</div>
+                        {% if form.projects.errors %}
+                            <div class="text-danger small">{{ form.projects.errors }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Step 5: Experience -->
+                {% if current_step == 5 %}
+                <div class="form-section">
+                    <h2 class="section-title">💼 Work Experience</h2>
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.years_experience.id_for_label }}" class="form-label fw-bold">Years of Experience *</label>
+                            {{ form.years_experience }}
+                            {% if form.years_experience.errors %}
+                                <div class="text-danger small">{{ form.years_experience.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.work_type.id_for_label }}" class="form-label fw-bold">Work Type *</label>
+                            {{ form.work_type }}
+                            {% if form.work_type.errors %}
+                                <div class="text-danger small">{{ form.work_type.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.role.id_for_label }}" class="form-label fw-bold">Role/Position</label>
+                            {{ form.role }}
+                            {% if form.role.errors %}
+                                <div class="text-danger small">{{ form.role.errors }}</div>
+                            {% endif %}
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <label for="{{ form.organization.id_for_label }}" class="form-label fw-bold">Organization</label>
+                            {{ form.organization }}
+                            {% if form.organization.errors %}
+                                <div class="text-danger small">{{ form.organization.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="alert alert-info mt-3">
+                        <small>💡 <strong>Tip:</strong> Enter 0 years if you're a fresher. Role and Organization fields will become optional for freshers.</small>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Navigation Buttons -->
+                <div class="d-flex justify-content-between mt-5 pt-4 border-top">
+                    {% if current_step > 1 %}
+                        <button type="submit" name="prev_step" class="btn btn-secondary btn-navigation">
+                            ← Previous Step
+                        </button>
+                    {% else %}
+                        <div></div> <!-- Empty div for spacing -->
+                    {% endif %}
+
+                    {% if current_step < total_steps %}
+                        <button type="submit" class="btn btn-primary btn-navigation">
+                            Next Step →
+                        </button>
+                    {% else %}
+                        <button type="submit" class="btn btn-success btn-generate">
+                            🪄 Generate My CV with AI
+                        </button>
+                    {% endif %}
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+// Get data from hidden element
+const templateData = document.getElementById('templateData');
+const currentStep = parseInt(templateData.getAttribute('data-current-step'));
+const progressValue = parseInt(templateData.getAttribute('data-progress'));
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Set progress bar width
+    const progressFill = document.getElementById('progressFill');
+    if (progressFill) {
+        progressFill.style.width = progressValue + '%';
+    }
+
+    // Add Bootstrap classes to form fields
+    const inputs = document.querySelectorAll('input, select, textarea');
+    inputs.forEach(input => {
+        if (input.type !== 'checkbox') {
+            input.classList.add('form-control');
+            input.classList.add('form-control-lg');
+        }
+    });
+    
+    const selects = document.querySelectorAll('select');
+    selects.forEach(select => {
+        select.classList.add('form-select');
+        select.classList.add('form-select-lg');
+    });
+
+    // Add class to textarea
+    const textareas = document.querySelectorAll('textarea');
+    textareas.forEach(textarea => {
+        textarea.classList.add('form-control');
+        textarea.rows = 4;
+    });
+
+    // Initialize experience fields
+    toggleExperienceFields();
+    
+    // Add event listener for experience field
+    const yearsExpField = document.getElementById('id_years_experience');
+    if (yearsExpField) {
+        yearsExpField.addEventListener('input', toggleExperienceFields);
+    }
+
+    // Form validation
+    const form = document.getElementById('cvStepperForm');
+    
+    form.addEventListener('submit', function(event) {
+        if (!validateCurrentStep(currentStep)) {
+            event.preventDefault();
+            event.stopPropagation();
+            
+            // Scroll to first error
+            const firstError = form.querySelector('.is-invalid');
+            if (firstError) {
+                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            }
+        }
+    });
+});
+
+function toggleExperienceFields() {
+    const yearsExpField = document.getElementById('id_years_experience');
+    const roleField = document.getElementById('id_role');
+    const organizationField = document.getElementById('id_organization');
+    
+    if (yearsExpField && roleField && organizationField) {
+        const experienceValue = parseInt(yearsExpField.value) || 0;
+        
+        if (experienceValue === 0) {
+            // Fresher - make role and organization optional
+            roleField.required = false;
+            organizationField.required = false;
+            roleField.placeholder = "Optional for freshers";
+            organizationField.placeholder = "Optional for freshers";
+            roleField.classList.add('bg-light');
+            organizationField.classList.add('bg-light');
+        } else {
+            // Experienced - make role and organization required
+            roleField.required = true;
+            organizationField.required = true;
+            roleField.placeholder = "e.g., Software Developer";
+            organizationField.placeholder = "e.g., ABC Company";
+            roleField.classList.remove('bg-light');
+            organizationField.classList.remove('bg-light');
+        }
+    }
+}
+
+function validateCurrentStep(step) {
+    let isValid = true;
+
+    switch(step) {
+        case 1: // Personal Info
+            if (!validateRequired('id_name')) isValid = false;
+            if (!validateEmail('id_email')) isValid = false;
+            if (!validatePhone('id_phone')) isValid = false;
+            if (!validateRequired('id_address')) isValid = false;
+            break;
+            
+        case 2: // Education
+            if (!validateSelect('id_highest_qualification')) isValid = false;
+            if (!validateSelect('id_field_of_study')) isValid = false;
+            if (!validateRequired('id_institution')) isValid = false;
+            if (!validateYear('id_passing_year')) isValid = false;
+            if (!validateRequired('id_grade')) isValid = false;
+            break;
+            
+        case 3: // Skills
+            if (!validateCheckboxes('technical_skills')) isValid = false;
+            if (!validateCheckboxes('soft_skills')) isValid = false;
+            break;
+            
+        case 4: // Projects
+            // Projects are optional, no validation needed
+            break;
+            
+        case 5: // Experience
+            if (!validateExperienceYears('id_years_experience')) isValid = false;
+            if (!validateSelect('id_work_type')) isValid = false;
+            
+            // Validate role and organization only if experience > 0
+            const experienceValue = parseInt(document.getElementById('id_years_experience').value) || 0;
+            if (experienceValue > 0) {
+                if (!validateRequired('id_role')) isValid = false;
+                if (!validateRequired('id_organization')) isValid = false;
+            }
+            break;
+    }
+
+    return isValid;
+}
+
+// Validation functions
+function validateRequired(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field.value.trim()) {
+        showError(field, 'This field is required.');
+        return false;
+    }
+    showSuccess(field);
+    return true;
+}
+
+function validateEmail(fieldId) {
+    const field = document.getElementById(fieldId);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!field.value.trim()) {
+        showError(field, 'Email is required.');
+        return false;
+    }
+    if (!emailRegex.test(field.value)) {
+        showError(field, 'Please enter a valid email address.');
+        return false;
+    }
+    showSuccess(field);
+    return true;
+}
+
+function validatePhone(fieldId) {
+    const field = document.getElementById(fieldId);
+    const phoneRegex = /^[\d\s\-\+\(\)]{10,}$/;
+    if (!field.value.trim()) {
+        showError(field, 'Phone number is required.');
+        return false;
+    }
+    if (!phoneRegex.test(field.value.replace(/\s/g, ''))) {
+        showError(field, 'Please enter a valid phone number.');
+        return false;
+    }
+    showSuccess(field);
+    return true;
+}
+
+function validateYear(fieldId) {
+    const field = document.getElementById(fieldId);
+    const year = parseInt(field.value);
+    if (!field.value.trim()) {
+        showError(field, 'Passing year is required.');
+        return false;
+    }
+    if (isNaN(year) || year < 1900 || year > 2030) {
+        showError(field, 'Please enter a valid year between 1900 and 2030.');
+        return false;
+    }
+    showSuccess(field);
+    return true;
+}
+
+function validateExperienceYears(fieldId) {
+    const field = document.getElementById(fieldId);
+    const years = parseInt(field.value);
+    if (!field.value.trim()) {
+        showError(field, 'Years of experience is required.');
+        return false;
+    }
+    if (isNaN(years) || years < 0 || years > 50) {
+        showError(field, 'Please enter a valid number between 0 and 50.');
+        return false;
+    }
+    showSuccess(field);
+    return true;
+}
+
+function validateSelect(fieldId) {
+    const field = document.getElementById(fieldId);
+    if (!field.value) {
+        showError(field, 'Please select an option.');
+        return false;
+    }
+    showSuccess(field);
+    return true;
+}
+
+function validateCheckboxes(fieldName) {
+    const checkboxes = document.querySelectorAll(`input[name="${fieldName}"]:checked`);
+    const fieldSet = document.querySelector(`input[name="${fieldName}"]`).closest('.mb-4');
+    
+    if (checkboxes.length === 0) {
+        fieldSet.classList.add('is-invalid');
+        return false;
+    }
+    fieldSet.classList.remove('is-invalid');
+    return true;
+}
+
+function showError(field, message) {
+    field.classList.remove('is-valid');
+    field.classList.add('is-invalid');
+    
+    let errorElement = field.nextElementSibling;
+    if (!errorElement || !errorElement.classList.contains('invalid-feedback')) {
+        errorElement = document.createElement('div');
+        errorElement.className = 'invalid-feedback';
+        field.parentNode.insertBefore(errorElement, field.nextSibling);
+    }
+    errorElement.textContent = message;
+}
+
+function showSuccess(field) {
+    field.classList.remove('is-invalid');
+    field.classList.add('is-valid');
+}
+</script>
+{% endblock %}
